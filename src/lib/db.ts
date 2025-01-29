@@ -1,90 +1,129 @@
-import Database from 'better-sqlite3';
-import { join } from 'path';
+import initSqlJs from 'sql.js';
 
-const db = new Database('dating.db');
+let db: any = null;
 
-// Initialize tables
-db.exec(`
-  CREATE TABLE IF NOT EXISTS profiles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    bio TEXT,
-    zodiac TEXT,
-    image_url TEXT,
-    location TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS matches (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    profile1_id INTEGER,
-    profile2_id INTEGER,
-    status TEXT DEFAULT 'pending',
-    FOREIGN KEY (profile1_id) REFERENCES profiles (id),
-    FOREIGN KEY (profile2_id) REFERENCES profiles (id)
-  );
-
-  CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    match_id INTEGER,
-    sender_id INTEGER,
-    content TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (match_id) REFERENCES matches (id),
-    FOREIGN KEY (sender_id) REFERENCES profiles (id)
-  );
-`);
-
-// Insert dummy data if the profiles table is empty
-const profileCount = db.prepare('SELECT COUNT(*) as count FROM profiles').get();
-if (profileCount.count === 0) {
-  const dummyProfiles = [
-    {
-      name: 'Alice Johnson',
-      bio: 'Love hiking and photography',
-      zodiac: 'Libra',
-      image_url: '/placeholder.svg',
-      location: 'New York, NY'
-    },
-    {
-      name: 'Bob Smith',
-      bio: 'Coffee enthusiast and tech lover',
-      zodiac: 'Taurus',
-      image_url: '/placeholder.svg',
-      location: 'Los Angeles, CA'
-    },
-    {
-      name: 'Carol Davis',
-      bio: 'Foodie and travel addict',
-      zodiac: 'Gemini',
-      image_url: '/placeholder.svg',
-      location: 'Chicago, IL'
-    }
-  ];
-
-  const insertProfile = db.prepare(
-    'INSERT INTO profiles (name, bio, zodiac, image_url, location) VALUES (?, ?, ?, ?, ?)'
-  );
-
-  dummyProfiles.forEach(profile => {
-    insertProfile.run(profile.name, profile.bio, profile.zodiac, profile.image_url, profile.location);
+// Initialize database
+async function initDb() {
+  if (db) return;
+  
+  const SQL = await initSqlJs({
+    locateFile: file => `https://sql.js.org/dist/${file}`
   });
+  
+  db = new SQL.Database();
+  
+  // Initialize tables
+  db.run(`
+    CREATE TABLE IF NOT EXISTS profiles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      bio TEXT,
+      zodiac TEXT,
+      image_url TEXT,
+      location TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS matches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile1_id INTEGER,
+      profile2_id INTEGER,
+      status TEXT DEFAULT 'pending',
+      FOREIGN KEY (profile1_id) REFERENCES profiles (id),
+      FOREIGN KEY (profile2_id) REFERENCES profiles (id)
+    );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      match_id INTEGER,
+      sender_id INTEGER,
+      content TEXT,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (match_id) REFERENCES matches (id),
+      FOREIGN KEY (sender_id) REFERENCES profiles (id)
+    );
+  `);
+
+  // Insert dummy data if the profiles table is empty
+  const result = db.exec("SELECT COUNT(*) as count FROM profiles");
+  const count = result[0].values[0][0];
+  
+  if (count === 0) {
+    const dummyProfiles = [
+      {
+        name: 'Alice Johnson',
+        bio: 'Love hiking and photography',
+        zodiac: 'Libra',
+        image_url: '/placeholder.svg',
+        location: 'New York, NY'
+      },
+      {
+        name: 'Bob Smith',
+        bio: 'Coffee enthusiast and tech lover',
+        zodiac: 'Taurus',
+        image_url: '/placeholder.svg',
+        location: 'Los Angeles, CA'
+      },
+      {
+        name: 'Carol Davis',
+        bio: 'Foodie and travel addict',
+        zodiac: 'Gemini',
+        image_url: '/placeholder.svg',
+        location: 'Chicago, IL'
+      }
+    ];
+
+    dummyProfiles.forEach(profile => {
+      db.run(
+        'INSERT INTO profiles (name, bio, zodiac, image_url, location) VALUES (?, ?, ?, ?, ?)',
+        [profile.name, profile.bio, profile.zodiac, profile.image_url, profile.location]
+      );
+    });
+  }
 }
 
+// Initialize DB when module loads
+initDb().catch(console.error);
+
 // Database queries
-export const getProfiles = () => {
-  return db.prepare('SELECT * FROM profiles').all();
+export const getProfiles = async () => {
+  await initDb();
+  const result = db.exec('SELECT * FROM profiles');
+  if (result.length === 0) return [];
+  
+  const columns = result[0].columns;
+  return result[0].values.map((row: any[]) => {
+    const profile: any = {};
+    columns.forEach((col, i) => {
+      profile[col] = row[i];
+    });
+    return profile;
+  });
 };
 
-export const createMatch = (profile1Id: number, profile2Id: number) => {
-  return db.prepare('INSERT INTO matches (profile1_id, profile2_id) VALUES (?, ?)').run(profile1Id, profile2Id);
+export const createMatch = async (profile1Id: number, profile2Id: number) => {
+  await initDb();
+  db.run('INSERT INTO matches (profile1_id, profile2_id) VALUES (?, ?)', [profile1Id, profile2Id]);
+  return true;
 };
 
-export const getMatches = (profileId: number) => {
-  return db.prepare(`
+export const getMatches = async (profileId: number) => {
+  await initDb();
+  const result = db.exec(`
     SELECT m.*, p.* FROM matches m 
     JOIN profiles p ON (m.profile1_id = p.id OR m.profile2_id = p.id)
     WHERE (m.profile1_id = ? OR m.profile2_id = ?) AND p.id != ?
-  `).all(profileId, profileId, profileId);
+  `, [profileId, profileId, profileId]);
+  
+  if (result.length === 0) return [];
+  
+  const columns = result[0].columns;
+  return result[0].values.map((row: any[]) => {
+    const match: any = {};
+    columns.forEach((col, i) => {
+      match[col] = row[i];
+    });
+    return match;
+  });
 };
 
 export type Profile = {

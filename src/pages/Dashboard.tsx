@@ -7,22 +7,40 @@ import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    try {
-      const fetchedProfiles = getProfiles();
-      setProfiles(fetchedProfiles);
-      console.log("Fetched profiles:", fetchedProfiles);
-    } catch (error) {
-      console.error("Error fetching profiles:", error);
-    }
+    const fetchProfiles = async () => {
+      try {
+        const fetchedProfiles = await getProfiles();
+        setProfiles(fetchedProfiles);
+        console.log("Fetched profiles:", fetchedProfiles);
+      } catch (error) {
+        console.error("Error fetching profiles:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfiles();
   }, []);
 
   const handleMatch = (profileId: number) => {
     // For now, just navigate to messages
     navigate(`/messages?matchId=${profileId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="container mx-auto px-4 pt-24">
+          <h1 className="text-3xl font-bold mb-6">Loading...</h1>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
