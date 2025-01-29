@@ -214,4 +214,5 @@ export type Event = {
   location: string;
   date: Date;
   distance: string;
+  coordinates: [number, number]; // This ensures coordinates is a tuple of exactly 2 numbers
 };

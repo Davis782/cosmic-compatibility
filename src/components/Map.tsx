@@ -1,13 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-
-interface Event {
-  id: number;
-  title: string;
-  location: string;
-  coordinates: [number, number];
-}
+import { Event } from '@/lib/db';
 
 interface MapProps {
   events: Event[];
@@ -32,6 +26,7 @@ const Map: React.FC<MapProps> = ({ events }) => {
 
     // Add markers for each event
     events.forEach(event => {
+      console.log('Adding marker for event:', event);
       const marker = new mapboxgl.Marker()
         .setLngLat(event.coordinates)
         .setPopup(new mapboxgl.Popup().setHTML(`

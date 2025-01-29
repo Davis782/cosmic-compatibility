@@ -32,7 +32,7 @@ const Profile = () => {
       location: "Central Park Coffee",
       date: new Date(),
       distance: "0.5 miles",
-      coordinates: [-73.968285, 40.785091]
+      coordinates: [-73.968285, 40.785091] as [number, number]
     },
     {
       id: 2,
@@ -40,7 +40,7 @@ const Profile = () => {
       location: "Brooklyn Bridge",
       date: new Date(),
       distance: "1.2 miles",
-      coordinates: [-73.996705, 40.706186]
+      coordinates: [-73.996705, 40.706186] as [number, number]
     }
   ]);
 
