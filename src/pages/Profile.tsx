@@ -4,10 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Profile as ProfileType, Match, getMatches } from "@/lib/db";
+import { Profile as ProfileType, Match, getMatches, updateProfile } from "@/lib/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar } from "@/components/ui/calendar";
 import { MapPin } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import Map from "@/components/Map";
 
 const Profile = () => {
   const [profile, setProfile] = useState<ProfileType>({
@@ -21,20 +23,24 @@ const Profile = () => {
 
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const { toast } = useToast();
+  
   const [events, setEvents] = useState([
     {
       id: 1,
       title: "Coffee Meetup",
       location: "Central Park Coffee",
       date: new Date(),
-      distance: "0.5 miles"
+      distance: "0.5 miles",
+      coordinates: [-73.968285, 40.785091]
     },
     {
       id: 2,
       title: "Photography Walk",
       location: "Brooklyn Bridge",
       date: new Date(),
-      distance: "1.2 miles"
+      distance: "1.2 miles",
+      coordinates: [-73.996705, 40.706186]
     }
   ]);
 
@@ -57,6 +63,24 @@ const Profile = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      await updateProfile(profile.id, profile);
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+      console.log("Profile updated:", profile);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -109,7 +133,7 @@ const Profile = () => {
                     onChange={(e) => handleProfileUpdate("location", e.target.value)}
                   />
                 </div>
-                <Button className="w-full">Save Changes</Button>
+                <Button className="w-full" onClick={handleSaveChanges}>Save Changes</Button>
               </CardContent>
             </Card>
           </div>
@@ -139,7 +163,7 @@ const Profile = () => {
               </CardContent>
             </Card>
 
-            {/* Events Calendar */}
+            {/* Events Calendar and Map */}
             <Card>
               <CardHeader>
                 <CardTitle>Nearby Events</CardTitle>
@@ -151,6 +175,9 @@ const Profile = () => {
                   onSelect={setSelectedDate}
                   className="mb-4"
                 />
+                <div className="h-[300px] mb-4">
+                  <Map events={events} />
+                </div>
                 <div className="space-y-4">
                   {events.map((event) => (
                     <div key={event.id} className="flex items-center space-x-4 p-2 rounded-lg hover:bg-gray-50">

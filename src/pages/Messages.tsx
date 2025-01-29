@@ -32,7 +32,7 @@ const Messages = () => {
       if (!matchId) return;
       
       try {
-        // Fetch matched profile (using the first profile for demo)
+        // Fetch matched profile
         const profiles = await db.getProfiles();
         const profile = profiles.find(p => p.id === parseInt(matchId));
         
@@ -41,10 +41,9 @@ const Messages = () => {
         }
 
         // Fetch messages
-        const result = await db.getMessages(parseInt(matchId));
-        if (result) {
-          setMessages(result);
-        }
+        const fetchedMessages = await db.getMessages(parseInt(matchId));
+        console.log("Fetched messages:", fetchedMessages);
+        setMessages(fetchedMessages);
       } catch (error) {
         console.error("Error fetching messages:", error);
         toast({
@@ -56,13 +55,15 @@ const Messages = () => {
     };
 
     fetchMatchData();
+    // Set up polling for new messages
+    const interval = setInterval(fetchMatchData, 5000);
+    return () => clearInterval(interval);
   }, [matchId, toast]);
 
   const handleSendMessage = async () => {
     if (!message.trim() || !matchId) return;
 
     try {
-      // Insert new message
       const newMessage = await db.sendMessage({
         matchId: parseInt(matchId),
         senderId: currentUserId,
