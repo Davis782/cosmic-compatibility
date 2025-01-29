@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Profile } from "@/lib/db";
 import { useToast } from "@/components/ui/use-toast";
+import * as db from "@/lib/db";
 
 interface Message {
   id: number;
@@ -32,40 +33,17 @@ const Messages = () => {
       
       try {
         // Fetch matched profile (using the first profile for demo)
-        const profiles = await window.db.exec(
-          "SELECT * FROM profiles WHERE id = ?",
-          [parseInt(matchId)]
-        );
+        const profiles = await db.getProfiles();
+        const profile = profiles.find(p => p.id === parseInt(matchId));
         
-        if (profiles[0]?.values?.length > 0) {
-          const profile = profiles[0].values[0];
-          setMatchedProfile({
-            id: profile[0],
-            name: profile[1],
-            bio: profile[2],
-            zodiac: profile[3],
-            image_url: profile[4],
-            location: profile[5]
-          });
+        if (profile) {
+          setMatchedProfile(profile);
         }
 
         // Fetch messages
-        const result = await window.db.exec(
-          `SELECT * FROM messages 
-           WHERE match_id = ? 
-           ORDER BY timestamp DESC 
-           LIMIT 50`,
-          [parseInt(matchId)]
-        );
-
-        if (result[0]?.values) {
-          const formattedMessages = result[0].values.map((msg: any) => ({
-            id: msg[0],
-            content: msg[3],
-            sender_id: msg[2],
-            timestamp: msg[4]
-          }));
-          setMessages(formattedMessages);
+        const result = await db.getMessages(parseInt(matchId));
+        if (result) {
+          setMessages(result);
         }
       } catch (error) {
         console.error("Error fetching messages:", error);
@@ -85,26 +63,14 @@ const Messages = () => {
 
     try {
       // Insert new message
-      await window.db.exec(
-        `INSERT INTO messages (match_id, sender_id, content) 
-         VALUES (?, ?, ?)`,
-        [parseInt(matchId), currentUserId, message.trim()]
-      );
+      const newMessage = await db.sendMessage({
+        matchId: parseInt(matchId),
+        senderId: currentUserId,
+        content: message.trim()
+      });
 
-      // Fetch the newly inserted message
-      const result = await window.db.exec(
-        "SELECT * FROM messages WHERE match_id = ? ORDER BY id DESC LIMIT 1",
-        [parseInt(matchId)]
-      );
-
-      if (result[0]?.values?.length > 0) {
-        const newMsg = result[0].values[0];
-        setMessages(prev => [{
-          id: newMsg[0],
-          content: newMsg[3],
-          sender_id: newMsg[2],
-          timestamp: newMsg[4]
-        }, ...prev]);
+      if (newMessage) {
+        setMessages(prev => [newMessage, ...prev]);
       }
 
       setMessage("");
