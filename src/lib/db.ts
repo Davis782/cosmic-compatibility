@@ -2,7 +2,6 @@ import initSqlJs from 'sql.js';
 
 let db: any = null;
 
-// Initialize database
 async function initDb() {
   if (db) return;
   
@@ -84,7 +83,20 @@ async function initDb() {
 // Initialize DB when module loads
 initDb().catch(console.error);
 
-// Database queries
+export const updateProfile = async (profileId: number, updates: Partial<Profile>) => {
+  await initDb();
+  const setClause = Object.keys(updates)
+    .map(key => `${key} = ?`)
+    .join(', ');
+  const values = Object.values(updates);
+  
+  db.run(
+    `UPDATE profiles SET ${setClause} WHERE id = ?`,
+    [...values, profileId]
+  );
+  return true;
+};
+
 export const getProfiles = async () => {
   await initDb();
   const result = db.exec('SELECT * FROM profiles');
@@ -140,4 +152,12 @@ export type Match = {
   profile1_id: number;
   profile2_id: number;
   status: 'pending' | 'accepted' | 'rejected';
+};
+
+export type Event = {
+  id: number;
+  title: string;
+  location: string;
+  date: Date;
+  distance: string;
 };
