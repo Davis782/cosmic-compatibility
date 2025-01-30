@@ -26,7 +26,7 @@ const Profile = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const { toast } = useToast();
   
-  const [events, setEvents] = useState([
+  const [events] = useState([
     {
       id: 1,
       title: "Coffee Meetup",
@@ -49,8 +49,8 @@ const Profile = () => {
     const loadMatches = async () => {
       try {
         const fetchedMatches = await getMatches(profile.id);
-        setMatches(fetchedMatches);
         console.log("Fetched matches:", fetchedMatches);
+        setMatches(fetchedMatches);
       } catch (error) {
         console.error("Error fetching matches:", error);
         toast({
