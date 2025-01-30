@@ -215,6 +215,8 @@ export type Profile = {
   zodiac: string;
   image_url: string;
   location: string;
+  bio_matches?: number;
+  is_bio_match?: boolean;
 };
 
 export type Match = {
@@ -230,5 +232,5 @@ export type Event = {
   location: string;
   date: Date;
   distance: string;
-  coordinates: [number, number]; // This ensures coordinates is a tuple of exactly 2 numbers
+  coordinates: [number, number];
 };
