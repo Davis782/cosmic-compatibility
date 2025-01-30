@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Profile as ProfileType, Match, getMatches, updateProfile } from "@/lib/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar } from "@/components/ui/calendar";
-import { MapPin } from "lucide-react";
+import { MapPin, Heart } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import Map from "@/components/Map";
+import { Badge } from "@/components/ui/badge";
 
 const Profile = () => {
   const [profile, setProfile] = useState<ProfileType>({
@@ -21,7 +22,7 @@ const Profile = () => {
     location: "New York, NY"
   });
 
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [matches, setMatches] = useState<(Match & Partial<ProfileType>)[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const { toast } = useToast();
   
@@ -52,11 +53,16 @@ const Profile = () => {
         console.log("Fetched matches:", fetchedMatches);
       } catch (error) {
         console.error("Error fetching matches:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load matches",
+          variant: "destructive"
+        });
       }
     };
 
     loadMatches();
-  }, [profile.id]);
+  }, [profile.id, toast]);
 
   const handleProfileUpdate = (field: keyof ProfileType, value: string) => {
     setProfile(prev => ({
@@ -147,18 +153,34 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {matches.map((match) => (
-                    <div key={match.id} className="flex items-center space-x-4 p-2 rounded-lg hover:bg-gray-50">
-                      <Avatar>
-                        <AvatarImage src="/placeholder.svg" />
-                        <AvatarFallback>M</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">Match #{match.id}</p>
-                        <p className="text-sm text-gray-500">{match.status}</p>
+                  {matches.length === 0 ? (
+                    <p className="text-center text-gray-500">No matches found yet</p>
+                  ) : (
+                    matches.map((match) => (
+                      <div key={match.id} className="flex items-center space-x-4 p-4 rounded-lg hover:bg-gray-50 border">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={match.image_url || "/placeholder.svg"} alt={match.name} />
+                          <AvatarFallback>{match.name?.charAt(0) || 'M'}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium">{match.name}</h4>
+                            {match.is_bio_match && (
+                              <Badge variant="secondary" className="ml-2">
+                                <Heart className="w-3 h-3 mr-1" />
+                                Bio Match
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500">{match.location}</p>
+                          <p className="text-sm text-gray-500">{match.zodiac}</p>
+                          {match.bio && (
+                            <p className="text-sm text-gray-600 mt-1">{match.bio}</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
