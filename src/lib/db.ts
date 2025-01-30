@@ -99,7 +99,18 @@ export const updateProfile = async (profileId: number, updates: Partial<Profile>
 
 export const getProfiles = async () => {
   await initDb();
-  const result = db.exec('SELECT * FROM profiles');
+  const result = db.exec(`
+    SELECT p.*, 
+           (SELECT COUNT(*) 
+            FROM profiles p2 
+            WHERE p2.id != p.id 
+            AND (
+              p2.bio LIKE '%' || p.bio || '%' 
+              OR p.bio LIKE '%' || p2.bio || '%'
+            )) as bio_matches
+    FROM profiles p
+  `);
+  
   if (result.length === 0) return [];
   
   const columns = result[0].columns;
@@ -121,10 +132,15 @@ export const createMatch = async (profile1Id: number, profile2Id: number) => {
 export const getMatches = async (profileId: number) => {
   await initDb();
   const result = db.exec(`
-    SELECT m.*, p.* FROM matches m 
+    SELECT 
+      m.*,
+      p.*,
+      (p.bio LIKE '%' || (SELECT bio FROM profiles WHERE id = ?) || '%' 
+       OR (SELECT bio FROM profiles WHERE id = ?) LIKE '%' || p.bio || '%') as is_bio_match
+    FROM matches m 
     JOIN profiles p ON (m.profile1_id = p.id OR m.profile2_id = p.id)
     WHERE (m.profile1_id = ? OR m.profile2_id = ?) AND p.id != ?
-  `, [profileId, profileId, profileId]);
+  `, [profileId, profileId, profileId, profileId, profileId]);
   
   if (result.length === 0) return [];
   

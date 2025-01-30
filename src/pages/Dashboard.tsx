@@ -2,13 +2,16 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { Profile, getProfiles } from "@/lib/db";
+import { Profile, getProfiles, createMatch } from "@/lib/db";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -26,9 +29,23 @@ const Dashboard = () => {
     fetchProfiles();
   }, []);
 
-  const handleMatch = (profileId: number) => {
-    // For now, just navigate to messages
-    navigate(`/messages?matchId=${profileId}`);
+  const handleMatch = async (profileId: number) => {
+    try {
+      // Current user ID is 1 for demo purposes
+      await createMatch(1, profileId);
+      toast({
+        title: "Success",
+        description: "Match created successfully!",
+      });
+      navigate(`/messages?matchId=${profileId}`);
+    } catch (error) {
+      console.error("Error creating match:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create match",
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading) {
@@ -56,8 +73,17 @@ const Dashboard = () => {
                 className="w-full h-48 object-cover"
               />
               <CardHeader>
-                <CardTitle>{profile.name}</CardTitle>
-                <CardDescription>{profile.zodiac}</CardDescription>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>{profile.name}</CardTitle>
+                    <CardDescription>{profile.zodiac}</CardDescription>
+                  </div>
+                  {profile.bio_matches > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      Bio Match
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">{profile.bio}</p>
