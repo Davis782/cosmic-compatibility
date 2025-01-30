@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Profile } from "@/lib/db";
 import { useToast } from "@/components/ui/use-toast";
 import * as db from "@/lib/db";
+import { Link } from "react-router-dom";
 
 interface Message {
   id: number;
@@ -16,16 +17,46 @@ interface Message {
   timestamp: string;
 }
 
+interface Match {
+  id: number;
+  profile1_id: number;
+  profile2_id: number;
+  status: string;
+  name: string;
+  image_url: string;
+  location: string;
+}
+
 const Messages = () => {
   const [searchParams] = useSearchParams();
   const matchId = searchParams.get("matchId");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
+  const [matches, setMatches] = useState<Match[]>([]);
   const { toast } = useToast();
 
   // Simulated current user ID (in a real app, this would come from auth)
   const currentUserId = 1;
+
+  useEffect(() => {
+    const fetchMatches = async () => {
+      try {
+        const fetchedMatches = await db.getMatches(currentUserId);
+        console.log("Fetched matches:", fetchedMatches);
+        setMatches(fetchedMatches);
+      } catch (error) {
+        console.error("Error fetching matches:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load matches",
+          variant: "destructive"
+        });
+      }
+    };
+
+    fetchMatches();
+  }, [toast]);
 
   useEffect(() => {
     const fetchMatchData = async () => {
@@ -91,7 +122,35 @@ const Messages = () => {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="container mx-auto px-4 pt-24">
-          <h1 className="text-3xl font-bold mb-6">No conversation selected</h1>
+          <h1 className="text-3xl font-bold mb-6">Messages</h1>
+          <div className="grid gap-4 max-w-2xl mx-auto">
+            {matches.length === 0 ? (
+              <Card className="p-6 text-center">
+                <p className="text-gray-600">No matches yet</p>
+              </Card>
+            ) : (
+              matches.map((match) => (
+                <Link 
+                  key={match.id} 
+                  to={`/messages?matchId=${match.id}`}
+                  className="block"
+                >
+                  <Card className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage src={match.image_url} alt={match.name} />
+                        <AvatarFallback>{match.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h2 className="font-semibold">{match.name}</h2>
+                        <p className="text-sm text-gray-500">{match.location}</p>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))
+            )}
+          </div>
         </main>
       </div>
     );
