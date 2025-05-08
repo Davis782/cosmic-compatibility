@@ -1,3 +1,4 @@
+
 export type Profile = {
   id: number;
   name: string;
@@ -5,6 +6,7 @@ export type Profile = {
   zodiac: string;
   image_url: string;
   location: string;
+  zipcode?: string;
   bio_matches?: number;
   is_bio_match?: boolean;
 };
@@ -23,4 +25,12 @@ export type Event = {
   date: Date;
   distance: string;
   coordinates: [number, number];
+};
+
+export type Message = {
+  id: number;
+  content: string;
+  sender_id: number;
+  match_id: number;
+  timestamp: string;
 };
